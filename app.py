@@ -1,16 +1,16 @@
-import pandas as pd
-from scapy.all import sniff, IP, TCP, UDP
-from influxdb_client import InfluxDBClient, Point, WriteOptions
-import datetime
+# Add this global variable at the top
+packet_sizes = []
 
-# --- CONFIGURATION ---
-TOKEN = "my-super-secret-token"
-ORG = "my-org"
-BUCKET = "network_metrics"
-URL = "http://localhost:8086"
-
-client = InfluxDBClient(url=URL, token=TOKEN, org=ORG)
-write_api = client.write_api(write_options=WriteOptions(batch_size=1))
+def detect_anomaly(current_size):
+    global packet_sizes
+    packet_sizes.append(current_size)
+    if len(packet_sizes) > 100: packet_sizes.pop(0)
+    
+    # Calculate average size of last 100 packets
+    avg = sum(packet_sizes) / len(packet_sizes)
+    
+    # Threshold: If a packet is 3x larger than average, flag it
+    return 1 if current_size > (avg * 3) and len(packet_sizes) > 10 else 0
 
 def process_packet(packet):
     if IP in packet:
@@ -19,7 +19,10 @@ def process_packet(packet):
         proto = "TCP" if TCP in packet else "UDP" if UDP in packet else "Other"
         size = len(packet)
         
-        # Cloud-Native Logic: Flagging Internal vs External Traffic
+        # Anomaly Detection Logic
+        is_anomaly = detect_anomaly(size)
+        
+        # Cloud-Native Classification
         traffic_type = "Internal" if src.startswith("10.") or src.startswith("192.168.") else "Egress"
         
         point = Point("network_flow") \
@@ -28,10 +31,14 @@ def process_packet(packet):
             .tag("protocol", proto) \
             .tag("type", traffic_type) \
             .field("bytes", size) \
+            .field("anomaly_flag", is_anomaly) \
             .time(datetime.datetime.utcnow())
         
         write_api.write(bucket=BUCKET, record=point)
-        print(f"Captured: {src} -> {dst} | {proto} | {size} bytes")
-
-print("🚀 Cloud-Native Traffic Analyzer Started...")
-sniff(iface="eth0", prn=process_packet, store=0)
+        
+        if is_anomaly:
+            print(f"⚠️  ANOMALY DETECTED: {size} bytes from {src}")
+        else:
+            print(f"Captured: {src} -> {dst} | {proto} | {size} bytes")
+          
+            
