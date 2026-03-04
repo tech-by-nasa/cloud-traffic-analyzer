@@ -11,4 +11,8 @@ influxdb_data/
 
 # OS
 .DS_Store
+<<<<<<< HEAD
 Thumbs.db
+=======
+Thumbs.db
+>>>>>>> b7d34ff (Final: Professional licensing, git-hygiene, and color-coded observability logic)

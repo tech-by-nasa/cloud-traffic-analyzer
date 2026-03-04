@@ -1,5 +1,9 @@
 # Add this global variable at the top
 packet_sizes = []
+GREEN = '\033[92m'
+YELLOW = '\033[93m'
+RED = '\033[91m'
+ENDC = '\033[0m'
 
 def detect_anomaly(current_size):
     global packet_sizes
@@ -36,9 +40,11 @@ def process_packet(packet):
         
         write_api.write(bucket=BUCKET, record=point)
         
-        if is_anomaly:
-            print(f"⚠️  ANOMALY DETECTED: {size} bytes from {src}")
-        else:
-            print(f"Captured: {src} -> {dst} | {proto} | {size} bytes")
-          
-            
+
+# Update the print logic in process_packet
+     if is_anomaly:
+          print(f"{RED}⚠️  CRITICAL ANOMALY: {size} bytes from {src}{ENDC}")
+     elif traffic_type == "Egress":
+         print(f"{YELLOW}🌐 EGRESS TRAFFIC: {src} -> {dst} | {size} bytes{ENDC}")
+    else:
+          print(f"{GREEN}🏠 INTERNAL: {src} -> {dst} | {size} bytes{ENDC}")
